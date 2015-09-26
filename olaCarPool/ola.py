@@ -1,4 +1,4 @@
-from flask import Flask, request, make_response
+from flask import Flask, request, make_response, jsonify
 from flask.ext.pymongo import PyMongo
 from config import DefaultConfig
 import requests
@@ -20,7 +20,7 @@ def book_ride():
         serverResponse = make_response()
         serverResponse.status_code = 404
         return serverResponse
-    response = requests.get('http://sandbox-t.olacabs.com/v1/bookings/create?',
+    response = requests.get(app.config.get('BOOKING_URL'),
                             payload,
                             headers={'Authorization':
                                      'Bearer %s' % request.get_json()[
@@ -28,8 +28,10 @@ def book_ride():
                                      'X-APP-TOKEN':
                                      app.config.get('X_APP_TOKEN')})
     if response.status_code == 200:
-        mongo.db.rides.save(request.get_json()['ride'])
-    return make_response()
+        ride = request.get_json()['ride']
+        ride['booked'] = response.json()
+        mongo.db.rides.save(ride)
+    return jsonify(ride)
 
 
 if __name__ == "__main__":
